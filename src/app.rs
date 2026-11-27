@@ -111,20 +111,20 @@ impl FormField {
 
     pub fn label(self, auth_kind: AuthKind) -> &'static str {
         match self {
-            FormField::Name => "Nome profilo",
-            FormField::Protocol => "Protocollo",
+            FormField::Name => "Profile name",
+            FormField::Protocol => "Protocol",
             FormField::Host => "Host",
-            FormField::Port => "Porta",
-            FormField::Username => "Utente",
-            FormField::AuthKind => "Autenticazione",
-            FormField::KeyPath => "Percorso chiave privata",
+            FormField::Port => "Port",
+            FormField::Username => "Username",
+            FormField::AuthKind => "Authentication",
+            FormField::KeyPath => "Private key path",
             FormField::Secret => match auth_kind {
-                AuthKind::KeyFile => "Passphrase chiave (opz.)",
+                AuthKind::KeyFile => "Key passphrase (optional)",
                 _ => "Password",
             },
-            FormField::SaveSecret => "Salva password/passphrase",
-            FormField::RemoteDir => "Cartella remota iniziale",
-            FormField::LocalDir => "Cartella locale iniziale",
+            FormField::SaveSecret => "Save password/passphrase",
+            FormField::RemoteDir => "Initial remote directory",
+            FormField::LocalDir => "Initial local directory",
         }
     }
 }
@@ -194,19 +194,19 @@ impl ConnectionFormState {
     pub fn build_profile(&mut self) -> Result<ConnectionProfile, String> {
         let host = self.profile.host.trim();
         if host.is_empty() {
-            return Err("L'host è obbligatorio".to_string());
+            return Err("Host is required".to_string());
         }
         let port: u16 = self
             .port_text
             .trim()
             .parse()
-            .map_err(|_| "Porta non valida (1-65535)".to_string())?;
+            .map_err(|_| "Invalid port (1–65535)".to_string())?;
         if port == 0 {
-            return Err("Porta non valida (1-65535)".to_string());
+            return Err("Invalid port (1–65535)".to_string());
         }
         if self.profile.protocol == Protocol::Sftp && self.profile.auth_kind == AuthKind::KeyFile {
             if self.profile.key_path.trim().is_empty() {
-                return Err("Specifica il percorso della chiave privata".to_string());
+                return Err("Enter the private key path".to_string());
             }
         }
         let mut p = self.profile.clone();
@@ -385,7 +385,7 @@ impl App {
 
         app.log(
             LogLevel::Info,
-            "KFTP pronto. [s] Site Manager | [n] Nuova conn. | [v/Spazio] Preview | Trascina il separatore col mouse | [?] Aiuto",
+            "KFTP ready. [s] Site Manager | [n] New connection | [v/Space] Preview | Drag the divider to resize panes | [?] Help",
         );
         app
     }
@@ -428,7 +428,7 @@ impl App {
                     self.active_pane = ActivePane::Remote;
                     self.log(
                         LogLevel::Success,
-                        format!("Connesso a {profile_name} ({remote_pwd})"),
+                        format!("Connected to {profile_name} ({remote_pwd})"),
                     );
                 }
                 WorkerEvent::Disconnected => {
@@ -437,7 +437,7 @@ impl App {
                     self.remote_dir.clear();
                     self.remote_entries.clear();
                     self.remote_state.select(None);
-                    self.log(LogLevel::Info, "Disconnesso dal server remoto.");
+                    self.log(LogLevel::Info, "Disconnected from remote server.");
                 }
                 WorkerEvent::DirListed { path, entries } => {
                     self.remote_dir = path;
@@ -519,7 +519,7 @@ impl App {
                     {
                         state.loading = false;
                         state.lines = vec![Line::from(Span::styled(
-                            format!("Errore caricamento preview: {err}"),
+                            format!("Preview load error: {err}"),
                             Style::default().fg(Color::Red),
                         ))];
                     }
@@ -547,7 +547,7 @@ impl App {
             Err(err) => {
                 self.log(
                     LogLevel::Error,
-                    format!("Errore lettura cartella locale: {err}"),
+                    format!("Error reading local directory: {err}"),
                 );
             }
         }
@@ -848,16 +848,16 @@ impl App {
             }
             KeyCode::Char('m') => {
                 if self.active_pane == ActivePane::Remote && self.connected_name.is_none() {
-                    self.log(LogLevel::Warn, "Connettiti prima a un server remoto.");
+                    self.log(LogLevel::Warn, "Connect to a remote server first.");
                     return;
                 }
                 let pane = self.active_pane;
                 self.modal = Modal::InputPrompt {
                     title: match pane {
-                        ActivePane::Local => "Nuova cartella locale".to_string(),
-                        ActivePane::Remote => "Nuova cartella remota".to_string(),
+                        ActivePane::Local => "New local directory".to_string(),
+                        ActivePane::Remote => "New remote directory".to_string(),
                     },
-                    hint: "Inserisci il nome della nuova cartella".to_string(),
+                    hint: "Enter the new directory name".to_string(),
                     value: String::new(),
                     masked: false,
                     action: PromptAction::Mkdir { pane },
@@ -867,7 +867,7 @@ impl App {
             KeyCode::Char('r') => self.prompt_rename_selected(),
             KeyCode::Char('p') => {
                 if self.active_pane == ActivePane::Remote && self.connected_name.is_none() {
-                    self.log(LogLevel::Warn, "Connettiti prima a un server remoto.");
+                    self.log(LogLevel::Warn, "Connect to a remote server first.");
                     return;
                 }
                 let pane = self.active_pane;
@@ -877,10 +877,10 @@ impl App {
                 };
                 self.modal = Modal::InputPrompt {
                     title: match pane {
-                        ActivePane::Local => "Vai a percorso locale".to_string(),
-                        ActivePane::Remote => "Vai a percorso remoto".to_string(),
+                        ActivePane::Local => "Go to local path".to_string(),
+                        ActivePane::Remote => "Go to remote path".to_string(),
                     },
-                    hint: "Inserisci il percorso di destinazione".to_string(),
+                    hint: "Enter the destination path".to_string(),
                     value: current,
                     masked: false,
                     action: PromptAction::GotoPath { pane },
@@ -1006,7 +1006,7 @@ impl App {
                     return;
                 };
                 if entry.is_dir {
-                    self.log(LogLevel::Warn, "La preview è disponibile solo per i file.");
+                    self.log(LogLevel::Warn, "Preview is only available for files.");
                     return;
                 }
                 match read_local_preview(&entry.path, PREVIEW_MAX_BYTES) {
@@ -1032,7 +1032,7 @@ impl App {
                         self.modal = Modal::Preview(state);
                     }
                     Err(err) => {
-                        self.log(LogLevel::Error, format!("Errore preview locale: {err}"));
+                        self.log(LogLevel::Error, format!("Local preview error: {err}"));
                     }
                 }
             }
@@ -1044,7 +1044,7 @@ impl App {
                     return;
                 };
                 if entry.is_dir {
-                    self.log(LogLevel::Warn, "La preview è disponibile solo per i file.");
+                    self.log(LogLevel::Warn, "Preview is only available for files.");
                     return;
                 }
                 let remote_path = entry.path.clone();
@@ -1061,7 +1061,7 @@ impl App {
                     kind: PreviewKind::PlainText,
                     formatted: false,
                     lines: vec![Line::from(Span::styled(
-                        "Caricamento preview dal server remoto...",
+                        "Loading preview from remote server...",
                         Style::default().fg(Color::Yellow),
                     ))],
                     total_size: None,
@@ -1151,7 +1151,7 @@ impl App {
                     if entry.is_dir {
                         self.log(
                             LogLevel::Warn,
-                            "Seleziona un file da caricare (upload directory intere non ancora supportato).",
+                            "Select a file to upload (uploading entire directories is not yet supported).",
                         );
                     } else {
                         self.queue_upload(&entry);
@@ -1163,7 +1163,7 @@ impl App {
                     if entry.is_dir {
                         self.log(
                             LogLevel::Warn,
-                            "Seleziona un file da scaricare (download directory intere non ancora supportato).",
+                            "Select a file to download (downloading entire directories is not yet supported).",
                         );
                     } else {
                         self.queue_download(&entry);
@@ -1177,7 +1177,7 @@ impl App {
         if self.connected_name.is_none() {
             self.log(
                 LogLevel::Warn,
-                "Connettiti prima a un server remoto per caricare file.",
+                "Connect to a remote server before uploading files.",
             );
             return;
         }
@@ -1199,7 +1199,7 @@ impl App {
         self.bottom_tab = BottomTab::Transfers;
         self.log(
             LogLevel::Info,
-            format!("In coda upload: {} -> {}", entry.name, remote_path),
+            format!("Queued upload: {} -> {}", entry.name, remote_path),
         );
         let _ = self.worker.tx.send(WorkerCommand::Upload {
             local_path,
@@ -1231,7 +1231,7 @@ impl App {
         self.log(
             LogLevel::Info,
             format!(
-                "In coda download: {} -> {}",
+                "Queued download: {} -> {}",
                 entry.name,
                 local_path.display()
             ),
@@ -1254,14 +1254,14 @@ impl App {
         if entry.is_parent {
             return;
         }
-        let kind = if entry.is_dir { "cartella" } else { "file" };
+        let kind = if entry.is_dir { "directory" } else { "file" };
         let where_str = match pane {
-            ActivePane::Local => "locale",
-            ActivePane::Remote => "remoto",
+            ActivePane::Local => "local",
+            ActivePane::Remote => "remote",
         };
         self.modal = Modal::Confirm {
-            title: "Conferma eliminazione".to_string(),
-            message: format!("Eliminare {kind} {where_str} '{}'?", entry.name),
+            title: "Confirm deletion".to_string(),
+            message: format!("Delete {where_str} {kind} '{}'?", entry.name),
             action: ConfirmAction::DeleteFile { pane, entry },
         };
     }
@@ -1277,8 +1277,8 @@ impl App {
             return;
         }
         self.modal = Modal::InputPrompt {
-            title: "Rinomina".to_string(),
-            hint: format!("Nuovo nome per '{}'", entry.name),
+            title: "Rename".to_string(),
+            hint: format!("New name for '{}'", entry.name),
             value: entry.name.clone(),
             masked: false,
             action: PromptAction::Rename {
@@ -1320,8 +1320,8 @@ impl App {
                 if let Some(profile) = self.connections.get(selected) {
                     let name = profile.name.clone();
                     self.modal = Modal::Confirm {
-                        title: "Elimina connessione".to_string(),
-                        message: format!("Eliminare il profilo salvato '{name}'?"),
+                        title: "Delete connection".to_string(),
+                        message: format!("Delete saved profile '{name}'?"),
                         action: ConfirmAction::DeleteConnection {
                             index: selected,
                             name,
@@ -1358,8 +1358,8 @@ impl App {
 
         if needs_password {
             self.modal = Modal::InputPrompt {
-                title: format!("Password per {}@{}", profile.username, profile.host),
-                hint: "Inserisci la password (non verrà salvata)".to_string(),
+                title: format!("Password for {}@{}", profile.username, profile.host),
+                hint: "Enter the password (it will not be saved)".to_string(),
                 value: String::new(),
                 masked: true,
                 action: PromptAction::RuntimeSecret { profile },
@@ -1371,7 +1371,7 @@ impl App {
         self.log(
             LogLevel::Info,
             format!(
-                "Avvio connessione {} ({}://{}:{})",
+                "Connecting to {} ({}://{}:{})",
                 profile.name,
                 profile.protocol.label(),
                 profile.host,
@@ -1568,7 +1568,7 @@ impl App {
                 self.log(
                     LogLevel::Success,
                     format!(
-                        "Profilo '{}' salvato in {}",
+                        "Profile '{}' saved to {}",
                         profile.name,
                         path.display()
                     ),
@@ -1577,7 +1577,7 @@ impl App {
             Err(err) => {
                 self.log(
                     LogLevel::Error,
-                    format!("Errore salvataggio connessioni: {err}"),
+                    format!("Error saving connections: {err}"),
                 );
             }
         }
@@ -1635,14 +1635,14 @@ impl App {
                             Ok(()) => {
                                 self.log(
                                     LogLevel::Success,
-                                    format!("Cartella locale creata: {}", target.display()),
+                                    format!("Local directory created: {}", target.display()),
                                 );
                                 self.refresh_local();
                             }
                             Err(err) => {
                                 self.log(
                                     LogLevel::Error,
-                                    format!("Errore creazione cartella locale: {err}"),
+                                    format!("Error creating local directory: {err}"),
                                 );
                             }
                         }
@@ -1665,14 +1665,14 @@ impl App {
                             Ok(()) => {
                                 self.log(
                                     LogLevel::Success,
-                                    format!("Rinominato localmente: {} -> {trimmed}", original.name),
+                                    format!("Renamed locally: {} -> {trimmed}", original.name),
                                 );
                                 self.refresh_local();
                             }
                             Err(err) => {
                                 self.log(
                                     LogLevel::Error,
-                                    format!("Errore rinomina locale: {err}"),
+                                    format!("Error renaming locally: {err}"),
                                 );
                             }
                         }
@@ -1699,7 +1699,7 @@ impl App {
                         } else {
                             self.log(
                                 LogLevel::Error,
-                                format!("Percorso locale non valido: {}", target.display()),
+                                format!("Invalid local path: {}", target.display()),
                             );
                         }
                     }
@@ -1715,7 +1715,7 @@ impl App {
                 self.connecting = true;
                 self.log(
                     LogLevel::Info,
-                    format!("Connessione a {}...", profile.name),
+                    format!("Connecting to {}...", profile.name),
                 );
                 let _ = self.worker.tx.send(WorkerCommand::Connect {
                     profile,
@@ -1764,14 +1764,14 @@ impl App {
                         Ok(()) => {
                             self.log(
                                 LogLevel::Success,
-                                format!("Eliminato localmente: {}", entry.name),
+                                format!("Deleted locally: {}", entry.name),
                             );
                             self.refresh_local();
                         }
                         Err(err) => {
                             self.log(
                                 LogLevel::Error,
-                                format!("Errore eliminazione locale: {err}"),
+                                format!("Error deleting locally: {err}"),
                             );
                         }
                     }
@@ -1788,12 +1788,12 @@ impl App {
                     self.connections.remove(index);
                     match save_connections(&self.connections) {
                         Ok(_) => {
-                            self.log(LogLevel::Success, format!("Profilo '{name}' eliminato."));
+                            self.log(LogLevel::Success, format!("Profile '{name}' deleted."));
                         }
                         Err(err) => {
                             self.log(
                                 LogLevel::Error,
-                                format!("Errore salvataggio connessioni: {err}"),
+                                format!("Error saving connections: {err}"),
                             );
                         }
                     }

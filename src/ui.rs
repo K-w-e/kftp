@@ -48,7 +48,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     draw_file_pane(
         frame,
         panes[0],
-        &format!(" Locale: {} ", app.local_dir.display()),
+        &format!(" Local: {} ", app.local_dir.display()),
         &app.local_entries,
         &mut app.local_state,
         app.active_pane == ActivePane::Local,
@@ -58,15 +58,15 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     draw_splitter(frame, panes[1], app.dragging_splitter);
 
     let remote_title = if let Some(name) = &app.connected_name {
-        format!(" Remoto ({name}): {} ", app.remote_dir)
+        format!(" Remote ({name}): {} ", app.remote_dir)
     } else if app.connecting {
-        " Remoto: connessione in corso... ".to_string()
+        " Remote: connecting... ".to_string()
     } else {
-        " Remoto: non connesso ".to_string()
+        " Remote: not connected ".to_string()
     };
 
     let empty_hint = if app.connected_name.is_none() && !app.connecting {
-        Some("Nessuna connessione attiva.\n\nPremi [s] per aprire il Site Manager\no [n] per creare una nuova connessione.")
+        Some("No active connection.\n\nPress [s] to open the Site Manager\nor [n] to create a new connection.")
     } else {
         None
     };
@@ -146,29 +146,29 @@ fn draw_splitter(frame: &mut Frame, area: Rect, dragging: bool) {
 fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
     let status = if app.connecting {
         Span::styled(
-            " ● Connessione in corso... ",
+            " ● Connecting... ",
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         )
     } else if let Some(name) = &app.connected_name {
         Span::styled(
-            format!(" ● Connesso: {name} "),
+            format!(" ● Connected: {name} "),
             Style::default()
                 .fg(Color::Green)
                 .add_modifier(Modifier::BOLD),
         )
     } else {
         Span::styled(
-            " ○ Disconnesso ",
+            " ○ Disconnected ",
             Style::default().fg(Color::DarkGray),
         )
     };
 
     let hidden_badge = if app.show_hidden {
-        Span::styled(" [Nascosti: ON] ", Style::default().fg(Color::Cyan))
+        Span::styled(" [Hidden: ON] ", Style::default().fg(Color::Cyan))
     } else {
-        Span::styled(" [Nascosti: OFF] ", Style::default().fg(Color::DarkGray))
+        Span::styled(" [Hidden: OFF] ", Style::default().fg(Color::DarkGray))
     };
 
     let active_transfers = app
@@ -178,7 +178,7 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
         .count();
     let transfer_badge = if active_transfers > 0 {
         Span::styled(
-            format!(" [Trasferimenti attivi: {active_transfers}] "),
+            format!(" [Active transfers: {active_transfers}] "),
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
@@ -247,13 +247,13 @@ fn draw_file_pane(
 
     let compact = area.width < 52;
     let header = if compact {
-        Row::new(vec![Cell::from("Nome"), Cell::from("Dim.")])
+        Row::new(vec![Cell::from("Name"), Cell::from("Size")])
     } else {
         Row::new(vec![
-            Cell::from("Nome"),
-            Cell::from("Dimensione"),
-            Cell::from("Modificato"),
-            Cell::from("Permessi"),
+            Cell::from("Name"),
+            Cell::from("Size"),
+            Cell::from("Modified"),
+            Cell::from("Permissions"),
         ])
     }
     .style(
@@ -335,13 +335,13 @@ fn draw_file_pane(
 fn draw_bottom_panel(frame: &mut Frame, app: &App, area: Rect) {
     let transfers_title = match app.bottom_tab {
         BottomTab::Transfers => Span::styled(
-            format!(" [Trasferimenti ({})] ", app.transfers.len()),
+            format!(" [Transfers ({})] ", app.transfers.len()),
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         ),
         BottomTab::Log => Span::styled(
-            format!(" Trasferimenti ({}) ", app.transfers.len()),
+            format!(" Transfers ({}) ", app.transfers.len()),
             Style::default().fg(Color::DarkGray),
         ),
     };
@@ -363,7 +363,7 @@ fn draw_bottom_panel(frame: &mut Frame, app: &App, area: Rect) {
             transfers_title,
             Span::raw("│"),
             log_title,
-            Span::styled("  ([t] cambia tab, [c] pulisci coda) ", Style::default().fg(Color::DarkGray)),
+            Span::styled("  ([t] switch tab, [c] clear queue) ", Style::default().fg(Color::DarkGray)),
         ]))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::DarkGray));
@@ -372,7 +372,7 @@ fn draw_bottom_panel(frame: &mut Frame, app: &App, area: Rect) {
         BottomTab::Transfers => {
             if app.transfers.is_empty() {
                 let p = Paragraph::new(
-                    "Nessun trasferimento in coda. Seleziona un file e premi [Enter] o [u] per trasferirlo.",
+                    "No transfers queued. Select a file and press [Enter] or [u] to transfer it.",
                 )
                 .style(Style::default().fg(Color::DarkGray))
                 .block(block);
@@ -403,7 +403,7 @@ fn draw_bottom_panel(frame: &mut Frame, app: &App, area: Rect) {
                     let bar = render_bar(pct, 16);
                     let (status_span, detail) = match t.status {
                         TransferStatus::Queued => (
-                            Span::styled("IN CODA ", Style::default().fg(Color::Yellow)),
+                            Span::styled("QUEUED  ", Style::default().fg(Color::Yellow)),
                             format!("{}/{}", format_bytes(t.done), format_bytes(t.total)),
                         ),
                         TransferStatus::InProgress => (
@@ -416,11 +416,11 @@ fn draw_bottom_panel(frame: &mut Frame, app: &App, area: Rect) {
                             format!("{}/{}", format_bytes(t.done), format_bytes(t.total)),
                         ),
                         TransferStatus::Done => (
-                            Span::styled("COMPLET ", Style::default().fg(Color::Green)),
+                            Span::styled("DONE    ", Style::default().fg(Color::Green)),
                             format!("{}", format_bytes(t.done)),
                         ),
                         TransferStatus::Failed => (
-                            Span::styled("ERRORE  ", Style::default().fg(Color::Red)),
+                            Span::styled("ERROR   ", Style::default().fg(Color::Red)),
                             t.error.clone().unwrap_or_default(),
                         ),
                     };
@@ -481,7 +481,7 @@ fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
         ActivePane::Remote => "[u/Enter] Download",
     };
     let text = format!(
-        " [Tab] Pannello │ {transfer_hint} │ [v/Spazio/Click dx] Preview │ [s] Site Mgr │ [n] Nuova │ [m] Mkdir │ [r] Rinomina │ [d] Elimina │ [[ ]] Ridimensiona │ [?] Aiuto │ [q] Esci"
+        " [Tab] Pane │ {transfer_hint} │ [v/Space/Right-click] Preview │ [s] Site Mgr │ [n] New │ [m] Mkdir │ [r] Rename │ [d] Delete │ [[ ]] Resize │ [?] Help │ [q] Quit"
     );
     let p = Paragraph::new(text).style(Style::default().fg(Color::Black).bg(Color::Gray));
     frame.render_widget(p, area);
@@ -493,7 +493,7 @@ fn draw_site_manager(frame: &mut Frame, app: &App, selected: usize) -> (Rect, Re
 
     let block = Block::default()
         .title(Span::styled(
-            " Site Manager — Connessioni salvate ",
+            " Site Manager — Saved Connections ",
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
@@ -511,7 +511,7 @@ fn draw_site_manager(frame: &mut Frame, app: &App, selected: usize) -> (Rect, Re
 
     if app.connections.is_empty() {
         let p = Paragraph::new(
-            "\nNessuna connessione salvata.\n\nPremi [n] per creare una nuova connessione SFTP / FTP / FTPS.",
+            "\nNo saved connections.\n\nPress [n] to create a new SFTP / FTP / FTPS connection.",
         )
         .alignment(Alignment::Center)
         .style(Style::default().fg(Color::Gray));
@@ -568,7 +568,7 @@ fn draw_site_manager(frame: &mut Frame, app: &App, selected: usize) -> (Rect, Re
     }
 
     let help = Paragraph::new(
-        "[Enter/Doppio click] Connetti │ [n] Nuova │ [e] Modifica │ [d] Elimina │ [Esc] Chiudi",
+        "[Enter/Double-click] Connect │ [n] New │ [e] Edit │ [d] Delete │ [Esc] Close",
     )
     .alignment(Alignment::Center)
     .style(Style::default().fg(Color::Yellow));
@@ -581,9 +581,9 @@ fn draw_connection_form(frame: &mut Frame, form: &ConnectionFormState) -> Rect {
     frame.render_widget(Clear, area);
 
     let title = if form.editing_index.is_some() {
-        " Modifica Connessione "
+        " Edit Connection "
     } else {
-        " Nuova Connessione "
+        " New Connection "
     };
 
     let block = Block::default()
@@ -625,9 +625,9 @@ fn draw_connection_form(frame: &mut Frame, form: &ConnectionFormState) -> Rect {
             FormField::Secret => "•".repeat(form.profile.secret.chars().count()),
             FormField::SaveSecret => {
                 if form.profile.save_secret {
-                    "[x] Sì (salvato in connections.toml con permessi 600)".to_string()
+                    "[x] Yes (saved in connections.toml with 600 permissions)".to_string()
                 } else {
-                    "[ ] No (richiesta a runtime se necessaria)".to_string()
+                    "[ ] No (prompted at runtime if needed)".to_string()
                 }
             }
             FormField::RemoteDir => form.profile.remote_dir.clone(),
@@ -692,7 +692,7 @@ fn draw_connection_form(frame: &mut Frame, form: &ConnectionFormState) -> Rect {
     }
 
     let hint = Paragraph::new(
-        "[Tab/↑↓] Campo  │  [←→/Spazio] Cambia opzione  │  [Enter] Salva & Connetti  │  [Ctrl+S] Solo Salva  │  [Esc] Annulla",
+        "[Tab/↑↓] Field  │  [←→/Space] Change option  │  [Enter] Save & Connect  │  [Ctrl+S] Save only  │  [Esc] Cancel",
     )
     .alignment(Alignment::Center)
     .style(Style::default().fg(Color::Yellow));
@@ -731,7 +731,7 @@ fn draw_input_prompt(frame: &mut Frame, title: &str, hint: &str, value: &str, ma
         )),
         Line::from(""),
         Line::from(Span::styled(
-            "[Enter] Conferma   │   [Esc] Annulla",
+            "[Enter] Confirm   │   [Esc] Cancel",
             Style::default().fg(Color::Yellow),
         )),
     ];
@@ -762,7 +762,7 @@ fn draw_confirm(frame: &mut Frame, title: &str, message: &str) -> Rect {
         Line::from(Span::styled(message, Style::default().fg(Color::White))),
         Line::from(""),
         Line::from(Span::styled(
-            "[y / Enter] Conferma   │   [n / Esc] Annulla",
+            "[y / Enter] Confirm   │   [n / Esc] Cancel",
             Style::default().fg(Color::Yellow),
         )),
     ];
@@ -779,9 +779,9 @@ fn draw_preview(frame: &mut Frame, state: &PreviewState) -> Rect {
     let area = centered_rect(88, 86, frame.area());
     frame.render_widget(Clear, area);
 
-    let origin = if state.is_remote { "Remoto" } else { "Locale" };
+    let origin = if state.is_remote { "Remote" } else { "Local" };
     let mode = if state.loading {
-        "Caricamento...".to_string()
+        "Loading...".to_string()
     } else if state.formatted {
         format!("{} · Pretty", state.kind.label())
     } else if !state.pretty {
@@ -831,9 +831,9 @@ fn draw_preview(frame: &mut Frame, state: &PreviewState) -> Rect {
     frame.render_widget(p, chunks[0]);
 
     let action_label = if state.is_remote {
-        "[Enter/u] Scarica"
+        "[Enter/u] Download"
     } else {
-        "[Enter/u] Carica"
+        "[Enter/u] Upload"
     };
     let pretty_label = if state.pretty {
         "[f] Raw"
@@ -846,7 +846,7 @@ fn draw_preview(frame: &mut Frame, state: &PreviewState) -> Rect {
         "[w] Wrap"
     };
     let footer = Paragraph::new(format!(
-        " [↑↓←→/Rotella] Scorri │ {pretty_label} │ {wrap_label} │ {action_label} │ [Esc/v/Spazio] Chiudi"
+        " [↑↓←→/Wheel] Scroll │ {pretty_label} │ {wrap_label} │ {action_label} │ [Esc/v/Space] Close"
     ))
     .style(Style::default().fg(Color::Yellow));
     frame.render_widget(footer, chunks[1]);
@@ -860,7 +860,7 @@ fn draw_help(frame: &mut Frame) -> Rect {
 
     let block = Block::default()
         .title(Span::styled(
-            " Guida Comandi — KFTP ",
+            " KFTP Command Help ",
             Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
@@ -875,28 +875,28 @@ fn draw_help(frame: &mut Frame) -> Rect {
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         )),
-        Line::from("  Tab / ← → / h l    Sposta il focus tra pannello Locale e Remoto"),
-        Line::from("  ↑ ↓ / j k          Muovi selezione su / giù"),
-        Line::from("  Enter              Apri cartella oppure carica/scarica il file selezionato"),
-        Line::from("  Backspace          Torna alla cartella superiore"),
-        Line::from("  p                  Vai direttamente a un percorso (locale o remoto)"),
-        Line::from("  .                  Mostra / nascondi file nascosti"),
-        Line::from("  R / F5             Aggiorna entrambe le liste"),
+        Line::from("  Tab / ← → / h l    Switch focus between Local and Remote panes"),
+        Line::from("  ↑ ↓ / j k          Move selection up / down"),
+        Line::from("  Enter              Open directory or upload/download the selected file"),
+        Line::from("  Backspace          Go to the parent directory"),
+        Line::from("  p                  Go directly to a path (local or remote)"),
+        Line::from("  .                  Show / hide hidden files"),
+        Line::from("  R / F5             Refresh both lists"),
         Line::from(""),
         Line::from(Span::styled(
-            "File & Trasferimenti",
+            "Files & Transfers",
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         )),
-        Line::from("  u                  Upload (dal pannello Locale) o Download (dal Remoto)"),
-        Line::from("  v / Spazio         Anteprima file (testo o hex, fino a 64 KB) senza scaricarlo"),
-        Line::from("  [ / ]              Riduci / espandi il pannello Locale"),
-        Line::from("  m                  Crea nuova cartella nel pannello attivo"),
-        Line::from("  r                  Rinomina file o cartella selezionata"),
-        Line::from("  d / Canc           Elimina file o cartella selezionata"),
-        Line::from("  t                  Alterna pannello inferiore tra Trasferimenti e Log"),
-        Line::from("  c                  Pulisce i trasferimenti completati/falliti"),
+        Line::from("  u                  Upload (from Local pane) or Download (from Remote)"),
+        Line::from("  v / Space          Preview file (text or hex, up to 64 KB) without downloading"),
+        Line::from("  [ / ]              Shrink / expand the Local pane"),
+        Line::from("  m                  Create a new directory in the active pane"),
+        Line::from("  r                  Rename selected file or directory"),
+        Line::from("  d / Delete         Delete selected file or directory"),
+        Line::from("  t                  Switch bottom panel between Transfers and Log"),
+        Line::from("  c                  Clear completed/failed transfers"),
         Line::from(""),
         Line::from(Span::styled(
             "Mouse",
@@ -904,25 +904,25 @@ fn draw_help(frame: &mut Frame) -> Rect {
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         )),
-        Line::from("  Click sx           Seleziona file / cambia pannello"),
-        Line::from("  Doppio click sx    Apri cartella o trasferisci file"),
-        Line::from("  Click dx           Apri anteprima del file"),
-        Line::from("  Rotella            Scorri file o anteprima"),
-        Line::from("  Trascina │ (⋮)     Ridimensiona il pannello sinistro drag & drop"),
+        Line::from("  Left-click         Select file / switch pane"),
+        Line::from("  Double-click       Open directory or transfer file"),
+        Line::from("  Right-click        Open file preview"),
+        Line::from("  Scroll wheel       Scroll file list or preview"),
+        Line::from("  Drag │ (⋮)         Resize the left pane with drag and drop"),
         Line::from(""),
         Line::from(Span::styled(
-            "Connessioni (SFTP / FTP / FTPS)",
+            "Connections (SFTP / FTP / FTPS)",
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         )),
-        Line::from("  s                  Apri Site Manager (connessioni salvate)"),
-        Line::from("  n                  Crea nuova connessione (supporta Password, Chiave SSH, SSH Agent)"),
-        Line::from("  D                  Disconnetti dal server remoto"),
-        Line::from("  q / Ctrl+C         Esci da KFTP"),
+        Line::from("  s                  Open Site Manager (saved connections)"),
+        Line::from("  n                  Create connection (supports Password, SSH Key, SSH Agent)"),
+        Line::from("  D                  Disconnect from remote server"),
+        Line::from("  q / Ctrl+C         Quit KFTP"),
         Line::from(""),
         Line::from(Span::styled(
-            "Premi [Esc] o [?] per chiudere",
+            "Press [Esc] or [?] to close",
             Style::default().fg(Color::DarkGray),
         )),
     ];

@@ -27,9 +27,9 @@ impl PreviewKind {
             PreviewKind::Csv => "CSV",
             PreviewKind::Markdown => "Markdown",
             PreviewKind::Log => "Log",
-            PreviewKind::Code => "Codice",
-            PreviewKind::PlainText => "Testo",
-            PreviewKind::Binary => "Binario (Hex)",
+            PreviewKind::Code => "Code",
+            PreviewKind::PlainText => "Plain text",
+            PreviewKind::Binary => "Binary (hex)",
         }
     }
 }
@@ -50,7 +50,7 @@ pub fn build_preview(
             kind: PreviewKind::PlainText,
             formatted: false,
             lines: vec![Line::from(Span::styled(
-                "(File vuoto)",
+                "(Empty file)",
                 Style::default().fg(Color::DarkGray),
             ))],
         };
@@ -718,7 +718,7 @@ fn build_hex_lines(bytes: &[u8]) -> Vec<Line<'static>> {
     if bytes.len() > preview_len {
         lines.push(Line::from(Span::styled(
             format!(
-                "... ({} byte totali caricati per l'anteprima binaria)",
+                "... ({} bytes total loaded for binary preview)",
                 bytes.len()
             ),
             Style::default().fg(Color::DarkGray),

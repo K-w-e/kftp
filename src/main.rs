@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        eprintln!("Errore KFTP: {err:#}");
+        eprintln!("KFTP error: {err:#}");
         std::process::exit(1);
     }
     Ok(())

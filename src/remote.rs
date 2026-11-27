@@ -129,7 +129,7 @@ impl ActiveClient {
                 }
                 let raw = sftp
                     .readdir(Path::new(path))
-                    .with_context(|| format!("Impossibile leggere {path}"))?;
+                    .with_context(|| format!("Unable to read {path}"))?;
 
                 for (entry_path, stat) in raw {
                     let Some(name) = entry_path.file_name().map(|s| s.to_string_lossy().to_string())
@@ -169,10 +169,10 @@ impl ActiveClient {
             }
             ActiveClient::Ftp(ftp) => {
                 ftp.cwd(path)
-                    .with_context(|| format!("Impossibile cambiare directory in {path}"))?;
+                    .with_context(|| format!("Unable to change directory to {path}"))?;
                 let lines = ftp
                     .list(None)
-                    .with_context(|| format!("LIST fallito su {path}"))?;
+                    .with_context(|| format!("LIST failed for {path}"))?;
                 let mut entries = Vec::new();
                 if path != "/" {
                     entries.push(FileEntry::parent(remote_parent(path)));
@@ -218,13 +218,13 @@ impl ActiveClient {
     ) -> Result<()> {
         let total = std::fs::metadata(local_path)?.len();
         let mut local_file = File::open(local_path)
-            .with_context(|| format!("Impossibile aprire {}", local_path.display()))?;
+            .with_context(|| format!("Unable to open {}", local_path.display()))?;
 
         match self {
             ActiveClient::Sftp { sftp, .. } => {
                 let mut remote_file = sftp
                     .create(Path::new(remote_path))
-                    .with_context(|| format!("Impossibile creare {remote_path}"))?;
+                    .with_context(|| format!("Unable to create {remote_path}"))?;
                 copy_with_progress(&mut local_file, &mut remote_file, total, transfer_id, tx)?;
                 remote_file.flush()?;
                 Ok(())
@@ -233,7 +233,7 @@ impl ActiveClient {
                 ftp.transfer_type(FileType::Binary)?;
                 let mut stream = ftp
                     .put_with_stream(remote_path)
-                    .with_context(|| format!("STOR fallito per {remote_path}"))?;
+                    .with_context(|| format!("STOR failed for {remote_path}"))?;
                 copy_with_progress(&mut local_file, &mut stream, total, transfer_id, tx)?;
                 stream.flush()?;
                 stream.finish()?;
@@ -254,7 +254,7 @@ impl ActiveClient {
             std::fs::create_dir_all(parent)?;
         }
         let mut local_file = File::create(local_path)
-            .with_context(|| format!("Impossibile creare {}", local_path.display()))?;
+            .with_context(|| format!("Unable to create {}", local_path.display()))?;
 
         match self {
             ActiveClient::Sftp { sftp, .. } => {
@@ -265,7 +265,7 @@ impl ActiveClient {
                     .unwrap_or(total_hint);
                 let mut remote_file = sftp
                     .open(Path::new(remote_path))
-                    .with_context(|| format!("Impossibile aprire {remote_path}"))?;
+                    .with_context(|| format!("Unable to open {remote_path}"))?;
                 copy_with_progress(&mut remote_file, &mut local_file, total, transfer_id, tx)?;
                 local_file.flush()?;
                 Ok(())
@@ -279,7 +279,7 @@ impl ActiveClient {
                     .unwrap_or(total_hint);
                 let mut stream = ftp
                     .retr_as_stream(remote_path)
-                    .with_context(|| format!("RETR fallito per {remote_path}"))?;
+                    .with_context(|| format!("RETR failed for {remote_path}"))?;
                 copy_with_progress(&mut stream, &mut local_file, total, transfer_id, tx)?;
                 local_file.flush()?;
                 stream.finish()?;
@@ -341,7 +341,7 @@ impl ActiveClient {
                 let total_size = sftp.stat(Path::new(remote_path)).ok().and_then(|s| s.size);
                 let mut remote_file = sftp
                     .open(Path::new(remote_path))
-                    .with_context(|| format!("Impossibile aprire {remote_path}"))?;
+                    .with_context(|| format!("Unable to open {remote_path}"))?;
                 let (bytes, truncated) = read_up_to(&mut remote_file, max_bytes)?;
                 Ok((bytes, total_size, truncated))
             }
@@ -350,7 +350,7 @@ impl ActiveClient {
                 let total_size = ftp.size(remote_path).ok().map(|s| s as u64);
                 let mut stream = ftp
                     .retr_as_stream(remote_path)
-                    .with_context(|| format!("RETR fallito per {remote_path}"))?;
+                    .with_context(|| format!("RETR failed for {remote_path}"))?;
                 let (bytes, truncated) = read_up_to(&mut stream, max_bytes)?;
                 if truncated {
                     let _ = ftp.abort(stream);
@@ -463,32 +463,32 @@ fn connect_client(
             let addr_str = format!("{}:{}", profile.host, profile.port);
             let _ = tx.send(WorkerEvent::Log {
                 level: LogLevel::Info,
-                message: format!("Connessione SFTP a {addr_str}..."),
+                message: format!("Connecting to SFTP at {addr_str}..."),
             });
             let sock_addr = addr_str
                 .to_socket_addrs()
-                .with_context(|| format!("Risoluzione DNS fallita per {addr_str}"))?
+                .with_context(|| format!("DNS resolution failed for {addr_str}"))?
                 .next()
-                .ok_or_else(|| anyhow!("Nessun indirizzo trovato per {addr_str}"))?;
+                .ok_or_else(|| anyhow!("No address found for {addr_str}"))?;
             let tcp = TcpStream::connect_timeout(&sock_addr, Duration::from_secs(15))
-                .with_context(|| format!("Connessione TCP fallita verso {addr_str}"))?;
+                .with_context(|| format!("TCP connection to {addr_str} failed"))?;
             tcp.set_read_timeout(Some(Duration::from_secs(30))).ok();
             tcp.set_write_timeout(Some(Duration::from_secs(30))).ok();
 
-            let mut sess = Session::new().context("Creazione sessione SSH fallita")?;
+            let mut sess = Session::new().context("Failed to create SSH session")?;
             sess.set_tcp_stream(tcp);
-            sess.handshake().context("Handshake SSH fallito")?;
+            sess.handshake().context("SSH handshake failed")?;
 
             match profile.auth_kind {
                 AuthKind::Password => {
                     sess.userauth_password(&profile.username, secret)
-                        .context("Autenticazione password SFTP fallita")?;
+                        .context("SFTP password authentication failed")?;
                 }
                 AuthKind::KeyFile => {
                     let key_path = expand_tilde(&profile.key_path);
                     if !key_path.exists() {
                         return Err(anyhow!(
-                            "File chiave privata non trovato: {}",
+                            "Private key file not found: {}",
                             key_path.display()
                         ));
                     }
@@ -511,22 +511,22 @@ fn connect_client(
                     )
                     .with_context(|| {
                         format!(
-                            "Autenticazione chiave SSH fallita ({})",
+                            "SSH key authentication failed ({})",
                             key_path.display()
                         )
                     })?;
                 }
                 AuthKind::SshAgent => {
                     sess.userauth_agent(&profile.username)
-                        .context("Autenticazione tramite SSH Agent fallita")?;
+                        .context("SSH Agent authentication failed")?;
                 }
             }
 
             if !sess.authenticated() {
-                return Err(anyhow!("Sessione SSH non autenticata"));
+                return Err(anyhow!("SSH session is not authenticated"));
             }
 
-            let sftp = sess.sftp().context("Apertura sottosistema SFTP fallita")?;
+            let sftp = sess.sftp().context("Failed to open SFTP subsystem")?;
             Ok(ActiveClient::Sftp {
                 _session: sess,
                 sftp,
@@ -536,10 +536,10 @@ fn connect_client(
             let addr_str = format!("{}:{}", profile.host, profile.port);
             let _ = tx.send(WorkerEvent::Log {
                 level: LogLevel::Info,
-                message: format!("Connessione FTP a {addr_str}..."),
+                message: format!("Connecting to FTP at {addr_str}..."),
             });
             let mut ftp = NativeTlsFtpStream::connect(&addr_str)
-                .with_context(|| format!("Connessione FTP fallita verso {addr_str}"))?;
+                .with_context(|| format!("FTP connection to {addr_str} failed"))?;
             let user = if profile.username.is_empty() {
                 "anonymous"
             } else {
@@ -550,28 +550,28 @@ fn connect_client(
             } else {
                 secret
             };
-            ftp.login(user, pass).context("Login FTP fallito")?;
+            ftp.login(user, pass).context("FTP login failed")?;
             Ok(ActiveClient::Ftp(ftp))
         }
         Protocol::Ftps => {
             let addr_str = format!("{}:{}", profile.host, profile.port);
             let _ = tx.send(WorkerEvent::Log {
                 level: LogLevel::Info,
-                message: format!("Connessione FTPS (Explicit TLS) a {addr_str}..."),
+                message: format!("Connecting to FTPS (Explicit TLS) at {addr_str}..."),
             });
             let ftp = NativeTlsFtpStream::connect(&addr_str)
-                .with_context(|| format!("Connessione FTPS fallita verso {addr_str}"))?;
-            let tls_connector = TlsConnector::new().context("Inizializzazione TLS fallita")?;
+                .with_context(|| format!("FTPS connection to {addr_str} failed"))?;
+            let tls_connector = TlsConnector::new().context("TLS initialization failed")?;
             let ctx = NativeTlsConnector::from(tls_connector);
             let mut ftp = ftp
                 .into_secure(ctx, &profile.host)
-                .context("Handshake TLS FTPS fallito")?;
+                .context("FTPS TLS handshake failed")?;
             let user = if profile.username.is_empty() {
                 "anonymous"
             } else {
                 &profile.username
             };
-            ftp.login(user, secret).context("Login FTPS fallito")?;
+            ftp.login(user, secret).context("FTPS login failed")?;
             Ok(ActiveClient::Ftp(ftp))
         }
     }
@@ -634,7 +634,7 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                                 Err(err) => {
                                     new_client.disconnect();
                                     let _ = ev_tx.send(WorkerEvent::Error(format!(
-                                        "Connesso ma errore lettura directory iniziale: {err:#}"
+                                        "Connected, but failed to read initial directory: {err:#}"
                                     )));
                                 }
                             }
@@ -646,7 +646,7 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                 }
                 WorkerCommand::ListDir { path, show_hidden } => {
                     let Some(c) = client.as_mut() else {
-                        let _ = ev_tx.send(WorkerEvent::Error("Non connesso".into()));
+                        let _ = ev_tx.send(WorkerEvent::Error("Not connected".into()));
                         continue;
                     };
                     match c.list_dir(&path, show_hidden) {
@@ -667,7 +667,7 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                         let _ = ev_tx.send(WorkerEvent::TransferFinished {
                             transfer_id,
                             ok: false,
-                            message: "Non connesso".into(),
+                            message: "Not connected".into(),
                         });
                         continue;
                     };
@@ -676,14 +676,14 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                             let _ = ev_tx.send(WorkerEvent::TransferFinished {
                                 transfer_id,
                                 ok: true,
-                                message: format!("Upload completato: {remote_path}"),
+                                message: format!("Upload complete: {remote_path}"),
                             });
                         }
                         Err(err) => {
                             let _ = ev_tx.send(WorkerEvent::TransferFinished {
                                 transfer_id,
                                 ok: false,
-                                message: format!("Upload fallito: {err:#}"),
+                                message: format!("Upload failed: {err:#}"),
                             });
                         }
                     }
@@ -698,7 +698,7 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                         let _ = ev_tx.send(WorkerEvent::TransferFinished {
                             transfer_id,
                             ok: false,
-                            message: "Non connesso".into(),
+                            message: "Not connected".into(),
                         });
                         continue;
                     };
@@ -708,7 +708,7 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                                 transfer_id,
                                 ok: true,
                                 message: format!(
-                                    "Download completato: {}",
+                                    "Download complete: {}",
                                     local_path.display()
                                 ),
                             });
@@ -717,26 +717,26 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                             let _ = ev_tx.send(WorkerEvent::TransferFinished {
                                 transfer_id,
                                 ok: false,
-                                message: format!("Download fallito: {err:#}"),
+                                message: format!("Download failed: {err:#}"),
                             });
                         }
                     }
                 }
                 WorkerCommand::Mkdir { remote_path } => {
                     let Some(c) = client.as_mut() else {
-                        let _ = ev_tx.send(WorkerEvent::Error("Non connesso".into()));
+                        let _ = ev_tx.send(WorkerEvent::Error("Not connected".into()));
                         continue;
                     };
                     match c.mkdir(&remote_path) {
                         Ok(()) => {
                             let _ = ev_tx.send(WorkerEvent::OperationDone {
-                                message: format!("Cartella remota creata: {remote_path}"),
+                                message: format!("Remote directory created: {remote_path}"),
                                 refresh_remote: true,
                             });
                         }
                         Err(err) => {
                             let _ = ev_tx.send(WorkerEvent::Error(format!(
-                                "Errore creazione cartella: {err:#}"
+                                "Error creating directory: {err:#}"
                             )));
                         }
                     }
@@ -746,38 +746,38 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                     is_dir,
                 } => {
                     let Some(c) = client.as_mut() else {
-                        let _ = ev_tx.send(WorkerEvent::Error("Non connesso".into()));
+                        let _ = ev_tx.send(WorkerEvent::Error("Not connected".into()));
                         continue;
                     };
                     match c.delete(&remote_path, is_dir) {
                         Ok(()) => {
                             let _ = ev_tx.send(WorkerEvent::OperationDone {
-                                message: format!("Eliminato dal server: {remote_path}"),
+                                message: format!("Deleted from server: {remote_path}"),
                                 refresh_remote: true,
                             });
                         }
                         Err(err) => {
                             let _ = ev_tx.send(WorkerEvent::Error(format!(
-                                "Errore eliminazione remota: {err:#}"
+                                "Error deleting remote item: {err:#}"
                             )));
                         }
                     }
                 }
                 WorkerCommand::Rename { from, to } => {
                     let Some(c) = client.as_mut() else {
-                        let _ = ev_tx.send(WorkerEvent::Error("Non connesso".into()));
+                        let _ = ev_tx.send(WorkerEvent::Error("Not connected".into()));
                         continue;
                     };
                     match c.rename(&from, &to) {
                         Ok(()) => {
                             let _ = ev_tx.send(WorkerEvent::OperationDone {
-                                message: format!("Rinominato: {from} -> {to}"),
+                                message: format!("Renamed: {from} -> {to}"),
                                 refresh_remote: true,
                             });
                         }
                         Err(err) => {
                             let _ = ev_tx.send(WorkerEvent::Error(format!(
-                                "Errore rinomina remota: {err:#}"
+                                "Error renaming remote item: {err:#}"
                             )));
                         }
                     }
@@ -787,7 +787,7 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                     max_bytes,
                 } => {
                     let Some(c) = client.as_mut() else {
-                        let _ = ev_tx.send(WorkerEvent::Error("Non connesso".into()));
+                        let _ = ev_tx.send(WorkerEvent::Error("Not connected".into()));
                         continue;
                     };
                     match c.read_preview(&remote_path, max_bytes) {
@@ -801,7 +801,7 @@ pub fn spawn_worker() -> RemoteWorkerHandle {
                         }
                         Err(err) => {
                             let _ = ev_tx.send(WorkerEvent::Error(format!(
-                                "Errore preview remota: {err:#}"
+                                "Remote preview error: {err:#}"
                             )));
                         }
                     }
