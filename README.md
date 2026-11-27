@@ -13,6 +13,14 @@ A dual-pane terminal client for SFTP, FTP, and FTPS inspired by FileZilla. Built
 - **File operations**: create directories (`m`), rename (`r`), delete (`d`), jump to any path (`p`), and toggle hidden files (`.`) on both local and remote panes.
 - **Full mouse support**: left-click to select or focus panes, double-click to open directories or start transfers, right-click to preview a file, scroll wheel for lists and previews, and drag-and-drop on the vertical divider to resize panes.
 
+## Screenshots
+
+![Dual-pane workspace](docs/screenshot-main.png)
+
+![Built-in file preview](docs/screenshot-preview.png)
+
+![Connection form](docs/screenshot-connection.png)
+
 ## Installation
 
 ### Prerequisites
